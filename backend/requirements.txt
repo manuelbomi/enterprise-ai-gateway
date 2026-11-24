@@ -20,7 +20,7 @@ psycopg2-binary==2.9.9      # Sync PostgreSQL driver (used by Alembic)
 redis==5.1.0                # Redis client for session caching and rate limiting
 
 # --- Authentication ---
-python-jose[cryptography]==3.3.0   # JWT token creation and validation
+python-jose[cryptography]==3.5.0   # JWT token creation and validation
 passlib[bcrypt]==1.7.4             # Secure password hashing using bcrypt
 
 # --- Validation ---
@@ -33,11 +33,11 @@ litellm>=1.50.0,<2.0.0      # Unified interface to 100+ LLM providers
 
 # --- HTTP Client ---
 httpx==0.27.2               # Async HTTP client — used to call LiteLLM proxy
-aiohttp==3.10.5             # Async HTTP library for streaming responses
+aiohttp==3.14.4             # Async HTTP library for streaming responses
 
 # --- Utilities ---
-python-multipart==0.0.12    # Required for FastAPI form data (file uploads)
-python-dotenv==1.0.1        # Load .env files in development
+python-multipart==0.0.31    # Required for FastAPI form data (file uploads)
+python-dotenv==1.2.2        # Load .env files in development
 tenacity==9.0.0             # Retry logic with exponential backoff for LLM calls
 
 # --- CORS ---
