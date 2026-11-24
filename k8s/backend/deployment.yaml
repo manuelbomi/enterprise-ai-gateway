@@ -1,0 +1,76 @@
+# ============================================================
+# k8s/backend/deployment.yaml — FastAPI Backend on Kubernetes
+#
+# ARCHITECT'S NOTE:
+#   This Deployment spec is production-ready:
+#     - 2 replicas minimum for high availability
+#     - Resource limits prevent one pod from starving others
+#     - Liveness probe restarts stuck containers automatically
+#     - Readiness probe prevents traffic to unready pods
+#     - Rolling update strategy for zero-downtime deploys
+#     - Secrets loaded from Kubernetes Secret (not env vars in YAML)
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-gateway-backend
+  namespace: enterprise-ai
+  labels:
+    app: ai-gateway-backend
+spec:
+  replicas: 2                           # 2 pods = HA without over-provisioning
+  selector:
+    matchLabels:
+      app: ai-gateway-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0                 # never take all pods down at once
+      maxSurge: 1                       # spin up 1 extra pod during update
+  template:
+    metadata:
+      labels:
+        app: ai-gateway-backend
+    spec:
+      containers:
+        - name: backend
+          image: your-registry/ai-gateway-backend:latest   # replace with your registry
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: ai-gateway-secrets    # kubectl create secret generic ai-gateway-secrets --from-env-file=.env
+          resources:
+            requests:
+              cpu: "250m"             # minimum guaranteed CPU (0.25 core)
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"            # maximum CPU (1 core)
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-gateway-backend
+  namespace: enterprise-ai
+spec:
+  selector:
+    app: ai-gateway-backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP      # only accessible within the cluster (nginx Ingress routes external traffic)

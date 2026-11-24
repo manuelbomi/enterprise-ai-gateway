@@ -1,0 +1,49 @@
+# ============================================================
+# requirements.txt — Python backend dependencies
+#
+# ARCHITECT'S NOTE:
+#   Pin major versions to avoid breaking changes in production.
+#   Run: pip install -r requirements.txt
+# ============================================================
+
+# --- Web Framework ---
+fastapi==0.115.0            # High-performance async API framework
+uvicorn[standard]==0.30.0   # ASGI server (runs FastAPI)
+
+# --- Database ---
+sqlalchemy==2.0.35          # ORM — SQLAlchemy 2.0 uses modern async-friendly syntax
+alembic==1.13.3             # Database migrations — never manually alter production schema
+asyncpg==0.29.0             # Async PostgreSQL driver (fastest option)
+psycopg2-binary==2.9.9      # Sync PostgreSQL driver (used by Alembic)
+
+# --- Caching ---
+redis==5.1.0                # Redis client for session caching and rate limiting
+
+# --- Authentication ---
+python-jose[cryptography]==3.3.0   # JWT token creation and validation
+passlib[bcrypt]==1.7.4             # Secure password hashing using bcrypt
+
+# --- Validation ---
+pydantic==2.9.2             # Data validation — FastAPI uses Pydantic models for schemas
+pydantic-settings==2.5.2    # Load config from .env files into Pydantic models
+email-validator==2.2.0      # Validate email format in Pydantic schemas
+
+# --- LiteLLM — The AI Gateway ---
+litellm>=1.50.0,<2.0.0      # Unified interface to 100+ LLM providers
+
+# --- HTTP Client ---
+httpx==0.27.2               # Async HTTP client — used to call LiteLLM proxy
+aiohttp==3.10.5             # Async HTTP library for streaming responses
+
+# --- Utilities ---
+python-multipart==0.0.12    # Required for FastAPI form data (file uploads)
+python-dotenv==1.0.1        # Load .env files in development
+tenacity==9.0.0             # Retry logic with exponential backoff for LLM calls
+
+# --- CORS ---
+# FastAPI includes CORS middleware built-in via starlette
+
+# --- Development only (not needed in production Docker image) ---
+# pytest==8.3.3
+# pytest-asyncio==0.24.0
+# httpx==0.27.2  (already listed above, doubles as test client)

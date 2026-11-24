@@ -1,0 +1,182 @@
+# ============================================================
+# docker-compose.yml — Local Development Environment
+#
+# ARCHITECT'S NOTE:
+#   This file defines the ENTIRE local development stack.
+#   One command starts all services:
+#
+#     docker compose up --build
+#
+#   Services:
+#     postgres  - Database (port 5432)
+#     redis     - Cache & rate limiting (port 6379)
+#     litellm   - AI proxy gateway (port 4000)
+#     backend   - FastAPI API (port 8000)
+#     frontend  - React dev server (port 5173)
+#
+#   Access points:
+#     Frontend UI:    http://localhost:5173
+#     Backend API:    http://localhost:8000
+#     API Docs:       http://localhost:8000/docs
+#     LiteLLM Proxy:  http://localhost:4000
+#     LiteLLM Admin:  http://localhost:4000/ui (browser dashboard)
+# ============================================================
+
+version: '3.9'
+
+services:
+
+  # -------------------------------------------------------
+  # PostgreSQL — Primary database
+  # -------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_gateway_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-enterprise_ai}
+      POSTGRES_USER: ${POSTGRES_USER:-ai_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-postgres-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"       # expose for local DB tools (TablePlus, DBeaver, etc.)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ai_user} -d ${POSTGRES_DB:-enterprise_ai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - ai_network
+
+  # -------------------------------------------------------
+  # Redis — Session cache, rate limiting, LiteLLM cache
+  # -------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ai_gateway_redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-change-me-redis-password}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"      # host 6380 → container 6379 (avoids conflicts with other local Redis)
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change-me-redis-password}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - ai_network
+
+  # -------------------------------------------------------
+  # LiteLLM Proxy — The AI Gateway
+  #
+  # ARCHITECT'S NOTE:
+  #   LiteLLM runs as a standalone HTTP server.
+  #   It reads litellm/config.yaml for model definitions.
+  #   The backend talks to it at http://litellm:4000.
+  #   You can also access its built-in UI at http://localhost:4000/ui
+  #   to monitor usage, manage keys, and view spend.
+  # -------------------------------------------------------
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: ai_gateway_litellm
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml:ro    # mount our config (read-only)
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "2"]
+    environment:
+      # Pass all provider keys — LiteLLM reads them from environment
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-change-me-litellm-master-key}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me-redis-password}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ai_network
+
+  # -------------------------------------------------------
+  # Backend — FastAPI application
+  # -------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai_gateway_backend
+    # In development: mount source code for live reload
+    volumes:
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - .env
+    environment:
+      # Override container-to-container hostnames
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      LITELLM_PROXY_URL: http://litellm:4000
+    ports:
+      - "8001:8000"      # host 8001 → container 8000 (avoids conflicts with other local APIs)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      litellm:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - ai_network
+
+  # -------------------------------------------------------
+  # Frontend — Vite dev server
+  #
+  # In development, we run Vite directly (hot module reload).
+  # In production, Vite builds static files served by nginx.
+  # -------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development          # multi-stage: use dev stage
+    container_name: ai_gateway_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules          # prevent overwriting node_modules from host
+    environment:
+      VITE_API_URL: http://localhost:8001
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - ai_network
+
+
+# -------------------------------------------------------
+# Named volumes — persist data across container restarts
+# -------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# -------------------------------------------------------
+# Networks — isolate the stack from other Docker containers
+# -------------------------------------------------------
+networks:
+  ai_network:
+    driver: bridge

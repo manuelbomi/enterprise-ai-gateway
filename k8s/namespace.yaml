@@ -1,0 +1,17 @@
+# ============================================================
+# k8s/namespace.yaml — Kubernetes Namespace
+#
+# ARCHITECT'S NOTE:
+#   A Namespace logically isolates this application from other
+#   workloads on the same Kubernetes cluster. This is essential
+#   in enterprise clusters shared across teams/projects.
+#
+#   Deploy with: kubectl apply -f k8s/
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: enterprise-ai
+  labels:
+    app: enterprise-ai-gateway
+    managed-by: kubectl

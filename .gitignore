@@ -1,0 +1,60 @@
+# ============================================================
+# .gitignore — Enterprise AI Gateway
+# ============================================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# --- Node / Frontend ---
+node_modules/
+frontend/dist/
+frontend/build/
+*.local
+
+# --- Environment & Secrets (NEVER commit these) ---
+# .env.example and .env.production.example ARE committed (they have no real values)
+# Everything else is secret and must stay out of git
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+secrets/
+
+# --- Database ---
+*.db
+*.sqlite
+*.sqlite3
+pgdata/
+
+# --- IDE ---
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Docker volumes ---
+postgres_data/
+redis_data/
+
+# --- Logs ---
+*.log
+logs/
+
+# --- LiteLLM runtime ---
+litellm_proxy_budget.db

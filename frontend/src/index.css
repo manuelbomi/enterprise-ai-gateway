@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    @apply text-gray-900 bg-white;
+  }
+
+  /* Smooth scrolling everywhere */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar — subtle enterprise look */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+/* Markdown code blocks in chat messages */
+.prose pre {
+  @apply rounded-lg text-xs overflow-x-auto;
+}
+
+.prose code:not(pre code) {
+  @apply bg-gray-100 text-brand-700 px-1 py-0.5 rounded text-xs font-mono;
+}

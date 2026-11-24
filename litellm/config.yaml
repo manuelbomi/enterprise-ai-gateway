@@ -1,0 +1,143 @@
+# ============================================================
+# litellm/config.yaml — LiteLLM Proxy Configuration
+#
+# ARCHITECT'S NOTE:
+#   This file is the heart of the AI routing layer.
+#   LiteLLM reads it at startup and uses it to:
+#     1. Register all available LLM models
+#     2. Define team-based routing (which team gets which model)
+#     3. Set global rate limits and budgets
+#     4. Configure caching and fallback strategies
+#
+# LiteLLM Proxy runs as its own Docker container on port 4000.
+# Our FastAPI backend talks to it via the LITELLM_PROXY_URL env var.
+# ============================================================
+
+# -------------------------------------------------------
+# 1. MODEL LIST — Register every LLM you want to expose
+#    model_name: the alias your app uses (provider-agnostic)
+#    litellm_params.model: the real provider/model string
+# -------------------------------------------------------
+model_list:
+
+  # ---- OpenAI ----
+  - model_name: gpt-4o                        # alias used by the app
+    litellm_params:
+      model: openai/gpt-4o                    # LiteLLM provider/model format
+      api_key: os.environ/OPENAI_API_KEY      # pulled from env at runtime
+    model_info:
+      description: "OpenAI GPT-4o — Best for complex reasoning, code generation"
+      tier: premium
+
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+    model_info:
+      description: "OpenAI GPT-4o Mini — Cost-effective, fast, great for HR/admin tasks"
+      tier: standard
+
+  # ---- Anthropic ----
+  - model_name: claude-opus
+    litellm_params:
+      model: anthropic/claude-opus-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      description: "Claude Opus — Most capable, strategic analysis, C-suite use cases"
+      tier: premium
+
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      description: "Claude Sonnet — Balanced performance and cost, general engineering"
+      tier: standard
+
+  - model_name: claude-haiku
+    litellm_params:
+      model: anthropic/claude-haiku-3-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      description: "Claude Haiku — Fastest, cheapest, ideal for simple Q&A, HR, logistics lookups"
+      tier: economy
+
+  # ---- Google Gemini ----
+  - model_name: gemini-pro
+    litellm_params:
+      model: gemini/gemini-1.5-pro
+      api_key: os.environ/GEMINI_API_KEY
+    model_info:
+      description: "Google Gemini 1.5 Pro — Strong multimodal, large context window"
+      tier: standard
+
+  # ---- Mistral ----
+  - model_name: mistral-large
+    litellm_params:
+      model: mistral/mistral-large-latest
+      api_key: os.environ/MISTRAL_API_KEY
+    model_info:
+      description: "Mistral Large — European-hosted, GDPR-friendly option"
+      tier: standard
+
+# -------------------------------------------------------
+# 2. ROUTER SETTINGS — Load balancing and fallback logic
+#    This tells LiteLLM what to do when a provider is down
+#    or rate-limited.
+# -------------------------------------------------------
+router_settings:
+  routing_strategy: latency-based-routing    # route to fastest responding replica
+  num_retries: 3                             # retry failed calls up to 3 times
+  timeout: 30                                # seconds before giving up
+  retry_after: 5                             # seconds between retries
+
+  # Fallback chains: if model A fails, try model B, then C
+  # This is critical for enterprise reliability (SLA guarantees)
+  fallbacks:
+    - gpt-4o: ["claude-sonnet", "gemini-pro"]
+    - claude-opus: ["gpt-4o", "claude-sonnet"]
+    - claude-sonnet: ["gpt-4o-mini", "claude-haiku"]
+
+# -------------------------------------------------------
+# 3. GENERAL SETTINGS
+# -------------------------------------------------------
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY  # admin key for proxy management
+  database_url: os.environ/DATABASE_URL      # PostgreSQL for key/team storage
+
+  # Store usage data in Postgres so we can query cost per team/user
+  store_model_in_db: true
+
+  # Enable LiteLLM's built-in spend tracking
+  # This powers our admin dashboard's cost analytics
+  spend_logs: true
+
+  # Rate limit unit: "minute" | "hour" | "day"
+  default_rpm_limit: 100                     # requests per minute per key (default)
+  default_tpm_limit: 100000                  # tokens per minute per key (default)
+
+# -------------------------------------------------------
+# 4. LITELLM SETTINGS — Global library-level config
+# -------------------------------------------------------
+litellm_settings:
+  # Drop any unsupported parameters silently instead of erroring
+  # Useful when switching between providers with different param support
+  drop_params: true
+
+  # Cache LLM responses for identical prompts (saves cost)
+  # Uses Redis as the cache backend
+  cache: true
+  cache_params:
+    type: redis
+    host: os.environ/REDIS_HOST
+    port: os.environ/REDIS_PORT
+    password: os.environ/REDIS_PASSWORD
+    ttl: 3600                                # cache for 1 hour
+
+  # Log every request/response for observability
+  success_callback: ["langfuse"]             # optional: plug in Langfuse for tracing
+  failure_callback: ["langfuse"]
+
+  # Set a global max budget — prevents runaway API costs
+  max_budget: 1000                           # USD total across all keys
+  budget_duration: "30d"                     # reset every 30 days
