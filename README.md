@@ -8,6 +8,7 @@
 ## Table of Contents
 
 1. [What This Is](#1-what-this-is)
+   - [UI Tour](#ui-tour)
 2. [Why LiteLLM for Enterprise](#2-why-litellm-for-enterprise)
 3. [Architecture Overview](#3-architecture-overview)
 4. [The Enterprise Multi-Tenancy Model](#4-the-enterprise-multi-tenancy-model)
@@ -50,6 +51,143 @@ It is a **fully functional enterprise AI platform** that you can:
 - Real-time streaming chat with token-by-token output
 - Per-team cost tracking and budget enforcement
 - A React/TypeScript UI with a chat interface and admin dashboard
+
+---
+
+## UI Tour
+
+> ASCII mockups of all four screens — built with React 18 + TypeScript + Tailwind CSS.
+
+### Login Page (`/login`)
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│                   ╔════════════════════════╗                         │
+│                   ║  🧠 Enterprise AI Hub  ║                         │
+│                   ║   Sign in to continue  ║                         │
+│                   ╠════════════════════════╣                         │
+│                   ║                        ║                         │
+│                   ║  Work Email            ║                         │
+│                   ║  ┌──────────────────┐  ║                         │
+│                   ║  │ admin@company.com│  ║                         │
+│                   ║  └──────────────────┘  ║                         │
+│                   ║                        ║                         │
+│                   ║  Password              ║                         │
+│                   ║  ┌──────────────────┐  ║                         │
+│                   ║  │ ●●●●●●●●●●●●    │  ║                         │
+│                   ║  └──────────────────┘  ║                         │
+│                   ║                        ║                         │
+│                   ║  ┌──────────────────┐  ║                         │
+│                   ║  │    Sign In  →    │  ║   ← blue gradient btn   │
+│                   ║  └──────────────────┘  ║                         │
+│                   ╚════════════════════════╝                         │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+  Dark gradient background  ·  Auth via JWT  ·  Role-based redirect
+```
+
+---
+
+### Chat Page (`/chat`) — The Main Interface
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ┌───────────────┐ ┌─────────────────────────────────────────────────────┐  │
+│ │ ■ AI Gateway  │ │  model: gpt-4o  ▼              [+ New Chat]        │  │
+│ │───────────────│ ├─────────────────────────────────────────────────────┤  │
+│ │ 💬 Chat       │ │                                                     │  │
+│ │ 📊 Dashboard  │ │         ┌─────────────────────────────────────┐    │  │
+│ │ ⚙️  Admin      │ │         │ You                           10:42 │    │  │
+│ │               │ │         │ What is our Q4 PTO carry-over       │    │  │
+│ │ ─ Sessions ─  │ │         │ policy?                             │    │  │
+│ │               │ │         └─────────────────────────────────────┘    │  │
+│ │ ► HR Policy   │ │                                                     │  │
+│ │   Code Review │ │   ╭─────────────────────────────────────────────╮  │  │
+│ │   Q4 Budget   │ │   │ Assistant                            10:42  │  │  │
+│ │   Logistics   │ │   │                                             │  │  │
+│ │               │ │   │ Based on the **Employee Handbook**, the Q4  │  │  │
+│ │               │ │   │ carry-over policy allows up to **5 days**.  │  │  │
+│ │               │ │   │                                             │  │  │
+│ │               │ │   │ ### Key Rules                               │  │  │
+│ │               │ │   │ - Unused days expire Jan 31                 │  │  │
+│ │               │ │   │ - Requests must be approved by Dec 15 ▌     │  │  │
+│ │               │ │   ╰─────────────────────────────────────────────╯  │  │
+│ │               │ │             ← streaming cursor shown live          │  │
+│ │───────────────│ ├─────────────────────────────────────────────────────┤  │
+│ │ 👤 Alice Chen │ │  ┌───────────────────────────────────────────────┐ │  │
+│ │   team_admin  │ │  │ Ask anything… (Shift+Enter for newline)  [→]  │ │  │
+│ │   [Sign Out]  │ │  └───────────────────────────────────────────────┘ │  │
+│ └───────────────┘ └─────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+  Dark sidebar (gray-900)  ·  Markdown rendering  ·  Token streaming via SSE
+```
+
+---
+
+### Dashboard Page (`/dashboard`) — Cost Analytics
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ■ AI Gateway  │  Cost & Usage Analytics              [30d ▼]               │
+│───────────────┼─────────────────────────────────────────────────────────────│
+│               │                                                             │
+│  💬 Chat      │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐       │
+│  📊 Dashboard │  │ Total Spend  │ │  API Calls   │ │   Tokens     │       │
+│  ⚙️  Admin     │  │   $142.37    │ │    8,291     │ │   14.2M      │       │
+│               │  │ this month   │ │ this month   │ │ this month   │       │
+│               │  └──────────────┘ └──────────────┘ └──────────────┘       │
+│               │                                                             │
+│               │  ┌──── Spend by Department ────────────────────────────┐   │
+│               │  │  $80 ┤                                              │   │
+│               │  │  $60 ┤        ████                                  │   │
+│               │  │  $40 ┤  ████  ████  ████                            │   │
+│               │  │  $20 ┤  ████  ████  ████  ████                      │   │
+│               │  │   $0 └──────────────────────────────────────────    │   │
+│               │  │       Engineering  HR  Logistics  C-Suite           │   │
+│               │  └────────────────────────────────────────────────────┘   │
+│               │                                                             │
+│               │  Team         Calls   Tokens     Cost    Top Model          │
+│               │  ─────────────────────────────────────────────────────     │
+│               │  Engineering  3,241   6.1M      $71.20  gpt-4o            │
+│               │  HR           2,180   4.3M      $38.90  claude-sonnet     │
+│               │  Logistics    1,920   2.8M      $22.47  gpt-4o-mini       │
+│               │  C-Suite        950   1.0M       $9.80  claude-opus       │
+└───────────────┴─────────────────────────────────────────────────────────────┘
+  Admin & team_admin role only  ·  7d / 30d / 90d selector  ·  Recharts
+```
+
+---
+
+### Admin Page (`/admin`) — Team & User Management
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ■ AI Gateway  │  Admin                                                      │
+│───────────────┼──────────────────────────────────────────────────────────── │
+│               │  [ Teams & Policies ]  [ Create User ]                      │
+│  💬 Chat      │                                                             │
+│  📊 Dashboard │  ┌── Create Team ──────────────────────────────────────┐   │
+│  ⚙️  Admin     │  │                                                     │   │
+│               │  │  Team Name: [ Engineering              ]             │   │
+│               │  │  Slug:      [ engineering  ]  (auto-generated)       │   │
+│               │  │                                                     │   │
+│               │  │  Allowed Models:                                    │   │
+│               │  │  ┌────────────┐ ┌──────────────┐ ┌───────────────┐ │   │
+│               │  │  │ ✓ gpt-4o  │ │ ✓ claude-son │ │  gemini-pro   │ │   │
+│               │  │  └────────────┘ └──────────────┘ └───────────────┘ │   │
+│               │  │  ┌──────────────┐ ┌──────────────┐                 │   │
+│               │  │  │  gpt-4o-mini │ │ claude-opus  │                  │   │
+│               │  │  └──────────────┘ └──────────────┘                 │   │
+│               │  │                                                     │   │
+│               │  │  Monthly Budget: [ $500      ]   RPM Limit: [ 100 ] │   │
+│               │  │  Default Model:  [ gpt-4o  ▼ ]                      │   │
+│               │  │                                                     │   │
+│               │  │  [ Create Team & Policy ]                           │   │
+│               │  └─────────────────────────────────────────────────── ┘   │
+└───────────────┴─────────────────────────────────────────────────────────────┘
+  super_admin only  ·  Model pills toggle on/off  ·  Auto-slugify team name
+```
 
 ---
 
