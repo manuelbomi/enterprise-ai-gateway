@@ -20,7 +20,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -120,7 +121,7 @@ def decode_access_token(token: str) -> Optional[TokenData]:
 
         return TokenData(user_id=user_id, role=role, team_id=team_id)
 
-    except JWTError:
+    except (InvalidTokenError, Exception):
         # Catches: expired, invalid signature, malformed token
         return None
 
